@@ -7,6 +7,7 @@ object Checkpointing {
 
   val spark = SparkSession.builder()
     .appName("Checkpointing")
+    .config("spark.sql.adaptive.enabled", "false")
     .master("local")
     .getOrCreate()
 
@@ -19,31 +20,26 @@ object Checkpointing {
 
     // do some expensive computation
     val orderedFlights = flightsDF.orderBy("dist")
+    orderedFlights.show()
 
     // checkpointing is used to avoid failure in computations
     // needs to be configured
     sc.setCheckpointDir("spark-warehouse")
 
-    // checkpoint a DF = save the DF to disk
-    val checkpointedFlights = orderedFlights.checkpoint() // an action
+    // checkpoint a DF  = save the DF to disk
+    val checkpointedFlights = orderedFlights.checkpoint() // action
 
     // query plan difference with checkpointed DFs
-    /*
-      == Physical Plan ==
-      *(1) Sort [dist#16 ASC NULLS FIRST], true, 0
-      +- *(1) Project [_id#7, arrdelay#8, carrier#9, crsarrtime#10L, crsdephour#11L, crsdeptime#12L, crselapsedtime#13, depdelay#14, dest#15, dist#16, dofW#17L, origin#18]
-         +- BatchScan[_id#7, arrdelay#8, carrier#9, crsarrtime#10L, crsdephour#11L, crsdeptime#12L, crselapsedtime#13, depdelay#14, dest#15, dist#16, dofW#17L, origin#18] JsonScan Location: InMemoryFileIndex[file:/Users/daniel/dev/rockthejvm/courses/spark-optimization-2/src/main/resourc..., ReadSchema: struct<_id:string,arrdelay:double,carrier:string,crsarrtime:bigint,crsdephour:bigint,crsdeptime:b...
-     */
     orderedFlights.explain()
-    /*
-      == Physical Plan ==
-      *(1) Scan ExistingRDD[_id#7,arrdelay#8,carrier#9,crsarrtime#10L,crsdephour#11L,crsdeptime#12L,crselapsedtime#13,depdelay#14,dest#15,dist#16,dofW#17L,origin#18]
-     */
     checkpointedFlights.explain()
 
     checkpointedFlights.show()
   }
 
+
+  // caching vs checkpointing performance
+
+//  RDDs case
   def cachingJobRDD() = {
     val numbers = sc.parallelize(1 to 10000000)
     val descNumbers = numbers.sortBy(-_).persist(StorageLevel.DISK_ONLY)
@@ -58,8 +54,9 @@ object Checkpointing {
     descNumbers.checkpoint() // returns Unit
     descNumbers.sum()
     descNumbers.sum()
-  }
+    }
 
+//  DFs case
   def cachingJobDF() = {
     val flightsDF = spark.read
       .option("inferSchema", "true")
@@ -68,11 +65,12 @@ object Checkpointing {
     val orderedFlights = flightsDF.orderBy("dist")
     orderedFlights.persist(StorageLevel.DISK_ONLY)
     orderedFlights.count()
-    orderedFlights.count() // shorter job
+    orderedFlights.count() // much shorted job
   }
 
   def checkpointingJobDF() = {
     sc.setCheckpointDir("spark-warehouse")
+
     val flightsDF = spark.read
       .option("inferSchema", "true")
       .json("src/main/resources/data/flights")
@@ -86,6 +84,7 @@ object Checkpointing {
   def main(args: Array[String]): Unit = {
     cachingJobDF()
     checkpointingJobDF()
+
     Thread.sleep(1000000)
   }
 }
