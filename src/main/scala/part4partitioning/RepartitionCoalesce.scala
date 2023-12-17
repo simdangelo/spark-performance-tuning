@@ -6,6 +6,7 @@ object RepartitionCoalesce {
 
   val spark = SparkSession.builder()
     .appName("Repartition and Coalesce")
+    .config("spark.sql.adaptive.enabled", "false")
     .master("local[*]")
     .getOrCreate()
 
