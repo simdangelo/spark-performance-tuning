@@ -1,3 +1,7 @@
+This repository contains the code I developed while following Daniel Ciocîrlan's online course **Spark Performance Tuning with Scala**, step by step. The course provided comprehensive guidance on how to write Spark performant code by tuning Apache Spark for best performance in order to obtain maximum speed and memory efficient for your cluster. This code serves as a practical implementation of the concepts covered.
+
+For the sake of completeness, below is the official README.md file in Daniel's repository with instructions on how best to execute the code.
+
 # The official repository for the Rock the JVM Spark Performance Tuning course
 
 Powered by [Rock the JVM!](rockthejvm.com)
